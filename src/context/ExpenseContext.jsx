@@ -1,4 +1,7 @@
-import React, { createContext, useContext, useMemo, useReducer } from 'react'
+import React, { createContext, useContext, useEffect, useMemo, useReducer } from 'react'
+import { useAuth } from './AuthContext.jsx'
+import { listTransactions } from '../services/firebase.js'
+import { isFirebaseConfigured } from '../services/firebase.js'
 
 const ExpenseContext = createContext(null)
 
@@ -27,6 +30,39 @@ function expenseReducer(state, action) {
 
 export function ExpenseProvider({ children }) {
   const [state, dispatch] = useReducer(expenseReducer, initialState)
+  const { user } = useAuth()
+
+  useEffect(() => {
+    async function load() {
+      try {
+        dispatch({ type: 'SET_LOADING', payload: true })
+        dispatch({ type: 'SET_ERROR', payload: null })
+        if (!user) {
+          dispatch({ type: 'SET_TRANSACTIONS', payload: [] })
+          return
+        }
+        if (isFirebaseConfigured) {
+          const items = await listTransactions(user.uid)
+          dispatch({ type: 'SET_TRANSACTIONS', payload: items })
+        } else {
+          const raw = localStorage.getItem('demo-transactions') || '[]'
+          const items = JSON.parse(raw)
+          dispatch({ type: 'SET_TRANSACTIONS', payload: items })
+        }
+      } catch (err) {
+        dispatch({ type: 'SET_ERROR', payload: 'Failed to load transactions' })
+      } finally {
+        dispatch({ type: 'SET_LOADING', payload: false })
+      }
+    }
+    load()
+  }, [user])
+
+  useEffect(() => {
+    if (!isFirebaseConfigured) {
+      localStorage.setItem('demo-transactions', JSON.stringify(state.transactions))
+    }
+  }, [state.transactions])
 
   const income = useMemo(
     () => state.transactions.filter(t => t.type === 'income').reduce((s, t) => s + Number(t.amount || 0), 0),

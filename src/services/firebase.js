@@ -13,23 +13,42 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 }
 
-const app = initializeApp(firebaseConfig)
-export const auth = getAuth(app)
-export const db = getFirestore(app)
+export const demoMode = String(import.meta.env.VITE_DEMO_MODE || '').toLowerCase() === 'true'
+
+const isFirebaseConfigured = !!(
+  firebaseConfig.apiKey &&
+  firebaseConfig.authDomain &&
+  firebaseConfig.projectId &&
+  firebaseConfig.appId
+)
+
+let app
+let auth
+let db
+if (isFirebaseConfigured) {
+  app = initializeApp(firebaseConfig)
+  auth = getAuth(app)
+  db = getFirestore(app)
+}
+
+export { auth, db, isFirebaseConfigured }
 
 export async function createTransaction(userId, data) {
+  if (!db) throw new Error('Firebase is not configured')
   const ref = collection(db, 'users', userId, 'transactions')
   const result = await addDoc(ref, data)
   return { id: result.id, ...data }
 }
 
 export async function listTransactions(userId) {
+  if (!db) return []
   const ref = collection(db, 'users', userId, 'transactions')
   const snap = await getDocs(ref)
   return snap.docs.map(d => ({ id: d.id, ...d.data() }))
 }
 
 export async function removeTransaction(userId, id) {
+  if (!db) throw new Error('Firebase is not configured')
   const ref = doc(db, 'users', userId, 'transactions', id)
   await deleteDoc(ref)
 }

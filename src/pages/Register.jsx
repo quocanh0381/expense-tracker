@@ -1,5 +1,8 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { createUserWithEmailAndPassword } from 'firebase/auth'
+import { auth } from '../services/firebase.js'
+import { isFirebaseConfigured } from '../services/firebase.js'
 
 export default function Register() {
   const [email, setEmail] = useState('')
@@ -9,25 +12,30 @@ export default function Register() {
 
   async function handleSubmit(e) {
     e.preventDefault()
+    if (!isFirebaseConfigured || !auth) {
+      setError('Auth is not configured. Use Demo mode or add VITE_FIREBASE_* in .env')
+      return
+    }
     try {
       setError('')
-      // TODO: integrate with Firebase auth signUp
+      await createUserWithEmailAndPassword(auth, email, password)
       navigate('/login')
     } catch (err) {
-      setError('Register failed')
+      const msg = err?.message || err?.code || 'Register failed'
+      setError(msg)
     }
   }
 
   return (
-    <div>
-      <h2>Register</h2>
-      <form onSubmit={handleSubmit} style={{ display: 'grid', maxWidth: 360, gap: 8 }}>
-        <input placeholder="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} />
-        <input placeholder="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} />
-        {error && <div style={{ color: 'crimson' }}>{error}</div>}
-        <button type="submit">Create account</button>
+    <div className="max-w-sm mx-auto bg-white border rounded-lg p-6">
+      <h2 className="text-xl font-semibold mb-4">Create account</h2>
+      <form onSubmit={handleSubmit} className="grid gap-3">
+        <input className="border rounded-md px-3 py-2" placeholder="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} />
+        <input className="border rounded-md px-3 py-2" placeholder="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} />
+        {error && <div className="text-rose-600 text-sm">{error}</div>}
+        <button type="submit" className="mt-2 inline-flex items-center justify-center px-4 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-500" disabled={!isFirebaseConfigured}>Create account</button>
       </form>
-      <p style={{ marginTop: 8 }}>Already have an account? <Link to="/login">Login</Link></p>
+      <p className="mt-3 text-sm text-gray-600">Already have an account? <Link className="text-indigo-600 hover:underline" to="/login">Login</Link></p>
     </div>
   )
 }

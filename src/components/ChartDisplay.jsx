@@ -18,10 +18,10 @@ export default function ChartDisplay() {
     return Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date)).map(d => ({ ...d, label: formatDateShort(d.date) }))
   }, [state.transactions])
 
-  if (!chartData.length) return null
+  if (!chartData.length) return <div className="text-sm text-gray-500">No data to display.</div>
 
   return (
-    <div style={{ height: 280 }}>
+    <div className="h-72">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={chartData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" />
